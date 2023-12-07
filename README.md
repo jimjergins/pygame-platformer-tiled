@@ -24,7 +24,10 @@ The following layers are needed:
     - <b>LevelEndY</b> = y coordinate of where the player should get to end the level
 
     # Controller Support
-    This game has basic controller support. When operating on Ubuntu, the D-pad will work, otherwise I have found only the first joystick works for moving.
+    This game has basic controller support. Also to note, the controller needs to connected and turned on prior the game starting. If the controller is found and has a rumble feature, the controller will rumble when it initialized in the game. Again, the controller needs to be connected before the game loop starts.
+    
+    ## moving
+    When operating on Ubuntu, the D-pad will work, otherwise I have found only the first joystick works for moving.
 
     When jumping, the first button will make the player jump. With an xbox one controller this happens to be the 'A' button.
 
