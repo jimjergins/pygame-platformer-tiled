@@ -22,3 +22,11 @@ The following layers are needed:
     - <b>LevelBlockSizeWidth</b> = number of pixels wide each block is
     - <b>LevelEndX = x coordinate of where the player should get to end the level
     - <b>LevelEndY</b> = y coordinate of where the player should get to end the level
+
+    # Controller Support
+    This game has basic controller support. When operating on Ubuntu, the D-pad will work, otherwise I have found only the first joystick works for moving.
+
+    When jumping, the first button will make the player jump. With an xbox one controller this happens to be the 'A' button.
+
+    # Keyboard Controls
+    Spacebar jumps, left/right arrow keys move accordingly.
