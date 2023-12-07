@@ -1,0 +1,14 @@
+{ "columns":7,
+ "image":"..\/Games\/Python-Platformer-main\/assets\/Terrain\/Terrain48.png",
+ "imageheight":176,
+ "imagewidth":352,
+ "margin":0,
+ "name":"Terrain48",
+ "spacing":0,
+ "tilecount":21,
+ "tiledversion":"git",
+ "tileheight":48,
+ "tilewidth":48,
+ "type":"tileset",
+ "version":"1.10"
+}

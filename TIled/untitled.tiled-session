@@ -1,0 +1,73 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "Level_1.tmx",
+    "expandedProjectPaths": [
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "Blue.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1
+        },
+        "Blue48.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "FireOn.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Level_1.tmx": {
+            "scale": 1,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 39.5,
+                "y": 408
+            }
+        },
+        "Terrain16x48.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Terrain48.json": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Terrain48.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "frame.defaultDuration": 200,
+    "last.exportedFilePath": "/home/jim/Games/Python-Platformer-main/assets/world",
+    "last.externalTilesetPath": "/home/jim/TIled",
+    "last.imagePath": "/home/jim/Games/Python-Platformer-main/assets/Traps/Fire",
+    "map.height": 50,
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 48,
+    "map.tileWidth": 48,
+    "map.width": 25,
+    "openFiles": [
+        "Level_1.tmx"
+    ],
+    "project": "untitled.tiled-project",
+    "recentFiles": [
+        "Level_1.tmx",
+        "Blue48.tsx",
+        "FireOn.tsx",
+        "Terrain48.tsx",
+        "Terrain48.json",
+        "Terrain16x48.tsx"
+    ],
+    "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 32,
+        "width": 16
+    }
+}

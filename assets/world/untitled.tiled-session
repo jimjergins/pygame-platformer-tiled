@@ -1,0 +1,115 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "Level_1.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "Blue.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1
+        },
+        "Blue48.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "FireOn.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Green8x10.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Intro.tmx": {
+            "scale": 0.88,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 368.18181818181824,
+                "y": 355.1136363636364
+            }
+        },
+        "Level_0.tmx": {
+            "scale": 0.12,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 4783.333333333334,
+                "y": 1395.8333333333337
+            }
+        },
+        "Level_1.tmx": {
+            "scale": 0.25,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 1376,
+                "y": 1310
+            }
+        },
+        "Play8x10.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Terrain16x48.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Terrain48.json": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Terrain48.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Terrain8x10.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Text_Black8x10.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "frame.defaultDuration": 200,
+    "last.exportedFilePath": "/home/jim/Games/Python-Platformer-main/assets/world",
+    "last.externalTilesetPath": "/home/jim/TIled",
+    "last.imagePath": "/Users/jim.jergins/repos/Python-Platformer-main/assets/Menu/Buttons",
+    "map.height": 60,
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 48,
+    "map.tileWidth": 48,
+    "map.width": 200,
+    "openFiles": [
+        "Level_0.tmx",
+        "Level_1.tmx",
+        "Intro.tmx",
+        "Terrain48.tsx"
+    ],
+    "project": "untitled.tiled-project",
+    "recentFiles": [
+        "Level_0.tmx",
+        "Terrain48.tsx",
+        "Intro.tmx",
+        "Level_1.tmx",
+        "Blue48.tsx",
+        "Play8x10.tsx",
+        "Terrain8x10.tsx",
+        "Green8x10.tsx",
+        "Text_Black8x10.tsx",
+        "FireOn.tsx",
+        "Terrain48.json",
+        "Terrain16x48.tsx"
+    ],
+    "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 10,
+        "width": 8
+    }
+}

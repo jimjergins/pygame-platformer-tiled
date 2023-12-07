@@ -1,0 +1,120 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "Level_3.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "Enemies_wbg.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Environment.tsx": {
+            "scaleInDock": 1
+        },
+        "Environment_wbg.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Level2.tmx": {
+            "scale": 1.6769,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1209.6726101735344,
+                "y": 817.5800584411711
+            }
+        },
+        "Level_1.tmx": {
+            "scale": 1.5,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 820,
+                "y": 651.6666666666666
+            }
+        },
+        "Level_2.tmx": {
+            "scale": 0.75,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1455.3333333333333,
+                "y": 488
+            }
+        },
+        "Level_3.tmx": {
+            "scale": 0.25,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 1414,
+                "y": 1168
+            }
+        },
+        "Level_4.tmx": {
+            "scale": 1.6933,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 1388.7084391425028,
+                "y": 730.5261914604619
+            }
+        },
+        "Level_5.tmx": {
+            "scale": 1.445,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1455.3633217993079,
+                "y": 487.54325259515565
+            }
+        },
+        "Level_6.tmx": {
+            "scale": 1,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 485.5,
+                "y": 688
+            }
+        },
+        "Player.tsx": {
+            "scaleInDock": 1
+        },
+        "Player_wbg.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "last.imagePath": "/Users/jim.jergins/repos/Python-Platformer-main/assets/world2/assets/With-Background",
+    "map.fixedSize": true,
+    "map.height": 61,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 16,
+    "map.tileWidth": 16,
+    "map.width": 182,
+    "openFiles": [
+        "Level_3.tmx",
+        "Level_2.tmx",
+        "Level_4.tmx",
+        "Level_5.tmx",
+        "Level_6.tmx"
+    ],
+    "project": "8x8_level.tiled-project",
+    "recentFiles": [
+        "Level_6.tmx",
+        "Level_5.tmx",
+        "Level_4.tmx",
+        "Level_2.tmx",
+        "Level_3.tmx",
+        "Level_1.tmx",
+        "Level2.tmx",
+        "Environment_wbg.tsx",
+        "Player_wbg.tsx",
+        "Enemies_wbg.tsx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}
