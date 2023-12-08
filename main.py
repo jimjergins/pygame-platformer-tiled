@@ -66,7 +66,7 @@ class Player(pygame.sprite.Sprite):
     SPRITES = load_sprite_sheets("MainCharacters", "NinjaFrog", 32, 32, True)
     ANIMATION_DELAY = 3
 
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, id):
         super().__init__()
         self.rect = pygame.Rect(x, y, width, height)
         # how fast we are going
@@ -79,6 +79,11 @@ class Player(pygame.sprite.Sprite):
         self.jump_count = 0
         self.hit = False
         self.hit_count = 0
+        self.death_count = 0
+        self.times_hit = 0
+        self.id = id
+        self.controller = None
+        self.did_die = False
 
     def jump(self):
         self.y_vel = -self.GRAVITY * 5
@@ -119,6 +124,11 @@ class Player(pygame.sprite.Sprite):
         if self.hit:
             self.hit_count += 1
         if self.hit_count > FPS * 2:
+            self.times_hit += self.hit_count // (fps*2)
+            if self.times_hit > 2:
+                self.did_die = True
+                self.death_count += 1
+            
             self.hit = False
             self.hit_count = 0
 
@@ -366,6 +376,11 @@ class Controller:
 
         return False
 
+    def GetPower(self):
+        return self.controller.get_power_level()
+
+    def GetGuid(self):
+        return self.controller.get_guid()
 
 # change this to use a tilemap
 # def get_background(name):
@@ -432,6 +447,9 @@ def draw(level, window, map, player, blocks, objects, offset_x, offset_y):
 
     player.draw(window, offset_x, offset_y)
 
+    # draw the menu
+    level.draw_menu(window)
+
     pygame.display.update()
 
 
@@ -489,9 +507,23 @@ def handle_move(player, controllers, objects):
 
     vertical_collide = handle_vertical_collision(player, objects, player.y_vel)
     to_check = [collide_left, collide_right, *vertical_collide]
+
     for obj in to_check:
         if obj and obj.name == "Fire":
             player.make_hit()
+
+
+def draw_text(text, color, x, y, window, isTitle=False):
+    size = 15
+    
+    if isTitle:
+        size = 30
+    
+    font = pygame.font.SysFont("arialblack", size)
+    
+    img = font.render(text, True, color)
+    window.blit(img, (x,y))
+
 
 CLASS_DICTIONARY = {
     'AnimatedObject': AnimatedObject,
@@ -536,6 +568,11 @@ class Level():
         self.next_level = self.level_id + 1
         if self.next_level > len(LEVEL_DICTIONARY):
             self.next_level = -1
+        
+        # for the menu
+        self.player = None
+        self.controller = None
+        self.text_color = (255,255,255)
     
     def level_parse(self):
         for layerObj in self.tiled_map.layers:
@@ -583,7 +620,27 @@ class Level():
 
     def get_blocks(self):
         return self.blocks
-    
+
+    def set_menu(self, player):
+        self.player = player
+        if player.controller:
+            self.controller = player.controller
+
+    def draw_menu(self, window):
+        pygame.draw.rect(window, (0, 0, 0), (0, 0, WIDTH, 70))
+        # here we are going to draw the top bar to display some cool stats
+        draw_text('Player: ' + str(self.player.id), self.text_color, 10, 10, window)
+        if self.controller:
+            # draw_text('Controller Id: ' + self.controller.GetGuid(), self.text_color, 130, 10, window)
+            draw_text('Controller Battery: ' + self.controller.GetPower(), self.text_color, 130, 10, window)
+        else:
+            # draw_text('Controller Id: n/a ', self.text_color, 130, 10, window)
+            draw_text('Controller Battery: n/a ', self.text_color, 130, 10, window)
+
+        draw_text('Times Hit: ' + str(self.player.times_hit), self.text_color, 10, 35, window)
+        draw_text('Times Dead: ' + str(self.player.death_count), self.text_color, 130, 35, window)
+        draw_text('Current Level: ' + str(self.level_id), self.text_color, 530, 15, window, True)
+
 def load_level(level_id):
     level = Level(level_id)
     level.level_parse()
@@ -592,9 +649,28 @@ def load_level(level_id):
     window = pygame.display.set_mode((WIDTH, HEIGHT), FLAGS, 16)
     return (window, level)
 
+def game_over(player, controllers):
+    window, level = load_level(0)
+    player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h, player.id)
+    
+    if len(controllers) > 0:
+        player.controller = controllers[0]
+    level.set_menu(player)
+
+    return (window, level, player)
 
 def main(window):
+    # level stats
+    pygame.font.init()
+    current_player = 1
+    
+
     clock = pygame.time.Clock()
+
+    # load the first level 
+    window, level = load_level(0)
+    player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h, current_player)
+    # player.id = current_player
 
     # initial the joysticks
     pygame.joystick.init()
@@ -607,11 +683,13 @@ def main(window):
             jstk.rumble(0.2, 0.5, 100)
             jstk.rumble(0.6, 0.8, 200)
             jstk.stop_rumble()
+    
+    # give the first player the first controller found
+    if len(controllers) > 0:
+        player.controller = controllers[0]
 
-    # load the first level 
-    window, level = load_level(0)
-    player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h)
-
+    # set the level's player to the first player  
+    level.set_menu(player)
 
     offset_x = 0
     offset_y = 0
@@ -627,7 +705,7 @@ def main(window):
                 run = False
                 break
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and player.jump_count < 2:
+                if event.key == pygame.K_SPACE and player.jump_count < 3:
                     player.jump()
                 elif event.key == pygame.K_ESCAPE or event.key ==  pygame.K_q:
                     run = False
@@ -641,21 +719,36 @@ def main(window):
                         player.jump()
 
         # end game
-        if player.rect.top > (level.level_h * level.block_size_h):
-            # we fell through the ground... Dead :P
-            # run = False
+        if player.did_die:
+            player.did_die = False
+            player.times_hit = 0
             player.rect.x = level.level_start_x
             player.rect.y = level.level_start_y
             offset_x = 0
+            offset_y = 0
+
+        if player.rect.top > (level.level_h * level.block_size_h):
+            # we fell through the ground... Dead :P
+            # run = False
+            player.death_count += 1
+            player.rect.x = level.level_start_x
+            player.rect.y = level.level_start_y
+            offset_x = 0
+            offset_y = 0
             print("You Fell to Your Death!", "Restarting Level")
         if player.rect.left >= level.level_end_x and player.rect.top >= (level.level_end_y) and player.rect.bottom <= (
                 level.level_end_y * level.block_size_h) and player.rect.right <= (level.level_end_x * level.block_size_w):
-            print("You Win All the Monies!")
 
             if level.next_level > 0 and level.next_level < len(LEVEL_DICTIONARY):
                 print("Loading next level")
                 window, level = load_level(level.next_level)
-                player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h)
+                old_death_count = player.death_count
+                player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h, current_player)
+                player.death_count = old_death_count
+
+                if len(controllers) > 0:
+                    player.controller = controllers[0]
+                level.set_menu(player)
 
                 offset_x = 0
                 offset_y = 0
@@ -663,11 +756,21 @@ def main(window):
             else:
                 print("Game over, you win!")
                 print("Loading next level")
-                window, level = load_level(0)
-                player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h)
+                # window, level = load_level(0)
+                # player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h, current_player)
+
+                # if len(controllers) > 0:
+                #     player.controller = controllers[0]
+                # level.set_menu(player)
+
+                window, level, player = game_over(player, controllers)
 
                 offset_x = 0
                 offset_y = 0
+        if player.death_count > 2:
+            window, level, player = game_over(player, controllers)
+            offset_x = 0
+            offset_y = 0
 
         player.loop(FPS)
 
@@ -683,6 +786,7 @@ def main(window):
         offset_x = player.rect.centerx - window.get_rect().centerx
 
         draw(level, window, level.background, player, level.get_blocks(), level.objects, offset_x, offset_y)
+        
         # print(player.rect.bottom, window.get_rect().bottom)
         # oldOffset_y = offset_y
 
