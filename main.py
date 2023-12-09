@@ -318,6 +318,8 @@ class MovingObject (AnimatedObject):
 class Controller:
     def __init__(self, joystick):
         self.controller = joystick
+        self.controller.init()
+        print("Controller ", self.controller.get_guid(), " Initialized")
         self.buttonCount = joystick.get_numbuttons()
         self.hatCount = joystick.get_numhats()
         self.axesCount = joystick.get_numaxes()
@@ -363,28 +365,44 @@ class Controller:
         return self.buttonsPressed
 
     def SetButtonPressed(self, button_id):
-        is_significant = self.jumpButtonId == button_id or self.attackButtonId == button_id
-        if is_significant and len(self.buttonsPressed) == 0:
-            print("button pressed ", button_id)
-            self.buttonsPressed.append(button_id)
-        elif is_significant and len(self.buttonsPressed) > 0:
-            for idx in self.buttonsPressed:
-                if idx == button_id:
-                    # button is already in there and is marked pressed
-                    return
-        elif is_significant:
-            print("button pressed ", button_id)
+        foundIdx = False
+        for idx in self.buttonsPressed:
+            if idx == button_id:
+                foundIdx = True
+                break
+        if not foundIdx:
             self.buttonsPressed.append(button_id)
 
+        # is_significant = self.jumpButtonId == button_id or self.attackButtonId == button_id
+        # if is_significant and len(self.buttonsPressed) == 0:
+        #     # print("button pressed ", button_id)
+        #     self.buttonsPressed.append(button_id)
+        # elif is_significant and len(self.buttonsPressed) > 0:
+        #     for idx in self.buttonsPressed:
+        #         if idx == button_id:
+        #             # button is already in there and is marked pressed
+        #             return
+        # elif is_significant:
+        #     # print("button pressed ", button_id)
+        #     self.buttonsPressed.append(button_id)
+
     def SetButtonUnpressed(self, button_id):
-        is_significant = self.jumpButtonId == button_id or self.attackButtonId == button_id
-        if is_significant and len(self.buttonsPressed) < 1:
-            return
-        elif is_significant and len(self.buttonsPressed) > -1:
-            print("button released ", button_id)
-            for idx in self.buttonsPressed:
-                if idx == button_id:
-                    self.buttonsPressed.remove(button_id)
+        foundIdx = False
+        for idx in range(len(self.buttonsPressed)):
+            if self.buttonsPressed[idx] == button_id:
+                foundIdx = True
+                break
+        if foundIdx:
+            self.buttonsPressed.remove(button_id)
+
+        # is_significant = self.jumpButtonId == button_id or self.attackButtonId == button_id
+        # if is_significant and len(self.buttonsPressed) < 1:
+        #     return
+        # elif is_significant and len(self.buttonsPressed) > -1:
+        #     print("button released ", button_id)
+        #     for idx in self.buttonsPressed:
+        #         if idx == button_id:
+        #             self.buttonsPressed.remove(button_id)
 
     def DidJumpButtonPress(self):
         if self.controller.get_button(self.jumpButtonId):
@@ -400,6 +418,14 @@ class Controller:
             return True
 
         return False
+
+    def IsButtonPressed(self, button_id):
+        foundIdx = False
+        for idx in range(len(self.buttonsPressed)):
+            if self.buttonsPressed[idx] == button_id:
+                foundIdx = True
+                break
+        return foundIdx
 
     def GetPower(self):
         return self.controller.get_power_level()
@@ -522,13 +548,18 @@ def handle_move(player, controllers, objects):
     if keys[pygame.K_RIGHT] and not collide_right:
         player.move_right(PLAYER_VEL)
 
-    for cntrlr in controllers:
-        hat_direction = cntrlr.GetHatPosition(0)
-        axis_direction = cntrlr.GetAxisPosition(0)
-        if (hat_direction == "left" or axis_direction == "left") and not collide_left:
-            player.move_left(PLAYER_VEL)
-        elif (hat_direction == "right" or axis_direction == "right") and not collide_right:
-            player.move_right(PLAYER_VEL)
+    # handles the controller button for moving
+    if player.controller.IsButtonPressed(14):
+        player.move_right(PLAYER_VEL)
+    if player.controller.IsButtonPressed(13):
+        player.move_left(PLAYER_VEL)
+
+    hat_direction = player.controller.GetHatPosition(0)
+    axis_direction = player.controller.GetAxisPosition(0)
+    if (hat_direction == "left" or axis_direction == "left") and not collide_left:
+        player.move_left(PLAYER_VEL)
+    elif (hat_direction == "right" or axis_direction == "right") and not collide_right:
+        player.move_right(PLAYER_VEL)
 
     vertical_collide = handle_vertical_collision(player, objects, player.y_vel)
     to_check = [collide_left, collide_right, *vertical_collide]
@@ -706,8 +737,9 @@ def main(window):
     pygame.joystick.init()
     controllers = []
     if pygame.get_init():
-        joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
-        for jstk in joysticks:
+        # joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
+        for x in range(pygame.joystick.get_count()):
+            jstk = pygame.joystick.Joystick(x)
             control = Controller(jstk)
             controllers.append(control)
             jstk.rumble(0.2, 0.5, 100)
@@ -756,13 +788,60 @@ def main(window):
                     run = False
                     break
             # joyStick buttons
-            if event.type == pygame.JOYBUTTONDOWN or event.type == pygame.JOYBUTTONUP:
+            if event.type == pygame.JOYBUTTONDOWN: #or event.type == pygame.JOYBUTTONUP:
                 for ctrlr in controllers:
+                    # find out which button was pressed
+                    for i in range(ctrlr.buttonCount):
+                        buttonState = ctrlr.controller.get_button(i)
+                        if buttonState:
+                            ctrlr.SetButtonPressed(i)
+                            print(buttonState, " button pressed: ", i)
+
                     did_jump = ctrlr.DidJumpButtonPress()
                     ctrlr.DidAttackButtonPress()
                     if did_jump and player.jump_count < 3:
                         player.jump()
 
+                pressedB = player.controller.GetPressedButtons()
+                for b in range(len(pressedB)):
+
+                    if pressedB[b] == 4 and level.level_id == 0:
+                        # here we change the character
+                        player_sprite_id = (player_sprite_id + 1) % len(PLAYER_SPRITE_DICTIONARY)
+                        old_death_count = player.death_count
+                        player_controller = player.controller
+                        player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h,
+                                        current_player, player_sprite_id)
+
+                        player.death_count = old_death_count
+
+                        if len(controllers) > 0:
+                            player.controller = player_controller
+
+                        level.set_menu(player)
+
+                    if pressedB[b] == 15 and level.level_id == 0:
+                        run = False
+                    elif pressedB[b] == 15:
+                        window, level, player = game_over(player, controllers, player_sprite_id)
+                        offset_x = 0
+                        offset_y = 0
+
+                    if pressedB[b] == 6:
+                        player.rect.x = level.level_start_x
+                        player.rect.y = level.level_start_y
+
+            if event.type == pygame.JOYBUTTONUP:
+                print("buttons released")
+                for ctrlr in controllers:
+                    # find out which button was pressed
+                    for i in ctrlr.buttonsPressed:
+                        buttonState = ctrlr.controller.get_button(i)
+                        if not buttonState:
+                            ctrlr.SetButtonUnpressed(i)
+                            print(buttonState, " button released: ", i)
+                        # if not buttonState:
+                        #     print("button released: ", i
         # end game
         if player.did_die:
             player.did_die = False
