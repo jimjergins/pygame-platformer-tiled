@@ -41,24 +41,24 @@
             "scale": 0.75,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1455.3333333333333,
-                "y": 488
+                "x": 1456,
+                "y": 488.66666666666663
             }
         },
         "Level_3.tmx": {
             "scale": 0.25,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 1414,
-                "y": 1168
+                "x": 1416,
+                "y": 1170
             }
         },
         "Level_4.tmx": {
             "scale": 1.6933,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 1388.7084391425028,
-                "y": 730.5261914604619
+                "x": 1455.7373176637334,
+                "y": 487.5095966456033
             }
         },
         "Level_5.tmx": {
@@ -73,8 +73,8 @@
             "scale": 1,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 485.5,
-                "y": 688
+                "x": 1456,
+                "y": 487.5
             }
         },
         "Player.tsx": {
@@ -85,7 +85,7 @@
             "scaleInEditor": 1
         }
     },
-    "last.imagePath": "/Users/jim.jergins/repos/Python-Platformer-main/assets/world2/assets/With-Background",
+    "last.imagePath": "/Users/jim.jergins/repos/pygame-platformer-tiled/assets/world2/assets",
     "map.fixedSize": true,
     "map.height": 61,
     "map.lastUsedFormat": "tmx",
@@ -104,8 +104,8 @@
         "Level_6.tmx",
         "Level_5.tmx",
         "Level_4.tmx",
-        "Level_2.tmx",
         "Level_3.tmx",
+        "Level_2.tmx",
         "Level_1.tmx",
         "Level2.tmx",
         "Environment_wbg.tsx",

@@ -68,6 +68,7 @@ class Player(pygame.sprite.Sprite):
 
     def __init__(self, x, y, width, height, id, sprite_id=0):
         super().__init__()
+        self.name = "player"
         sprite_name = PLAYER_SPRITE_DICTIONARY[sprite_id]
         self.SPRITES = load_sprite_sheets("MainCharacters", sprite_name, 32, 32, True)
 
@@ -199,6 +200,221 @@ class Player(pygame.sprite.Sprite):
         win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y - offset_y))
 
 
+class NonPlayerCharacter(pygame.sprite.Sprite):
+    COLOR = (255, 0, 0)
+    GRAVITY = 1
+    SPRITES = {}
+    ANIMATION_DELAY = 3
+
+    def __init__(self, x, y, screen_x, screen_y, width, height, id, properties, tileMapObj):
+        super().__init__()
+        self.name = "npc"
+        self.kills = True
+        self.frames = properties['frames']
+        self.frame_types = properties['availableFrames'].split(',')
+        self.has_i_frames = False
+        self.has_m_frames = False
+        self.has_h_frames = False
+
+        self.idle_frame_count = int(properties['idleFrameCount'])
+        self.idle_frame_start = int(properties['idleFrameStart'])
+        self.idle_frame_rate = int(properties['idleFrameRate'])
+
+        self.moving_right_frame_count = 0
+        self.moving_right_frame_start = 0
+        self.moving_frame_rate = self.ANIMATION_DELAY
+
+        self.moving_left_frame_count = 0
+        self.moving_left_frame_start = 0
+        self.moving_frame_rate = self.ANIMATION_DELAY
+
+        self.hit_frame_count = 0
+        self.hit_frame_start = 0
+        self.hit_frame_rate = self.ANIMATION_DELAY
+
+        self.rect = pygame.Rect(x, y, width, height)
+
+        # how fast we are going
+        self.x_vel = 0
+        self.y_vel = 0
+        self.mask = None
+        self.direction = "right"
+        self.animation_count = 0
+        self.fall_count = 0
+        self.jump_count = 0
+        self.hit = False
+        self.hit_count = 0
+        self.death_count = 1
+        self.times_hit = 0
+        self.id = id
+        self.controller = None
+        self.did_die = False
+        self.apply_hit = 0
+
+        self.load_animation_frames(properties, tileMapObj)
+
+    def load_animation_frames(self, properties, tileMapObj):
+        for elt in self.frame_types:
+            if elt == "idle":
+                self.has_i_frames = True
+                self.idle_frame_start = int(properties['idleFrameStart'])
+                self.idle_frame_count = int(properties['idleFrameCount'])
+                self.idle_frame_rate = int(properties['idleFrameRate'])
+                self.ANIMATION_DELAY = self.idle_frame_rate
+            elif elt == "move":
+                self.has_m_frames = True
+                self.moving_frame_start = int(properties['moveFrameStart'])
+                self.moving_frame_count = int(properties['moveFrameCount'])
+                self.moving_frame_rate = int(properties['moveFrameRate'])
+                self.speed = int(properties['velocityX'])
+            elif elt == "hit":
+                self.has_h_frames = True
+                self.hit_frame_start = int(properties['hitFrameStart'])
+                self.hit_frame_count = int(properties['hitFrameCount'])
+                self.hit_frame_rate = int(properties['hitFrameRate'])
+
+        idleSprites = []
+        moveRightSprites = []
+        moveLeftSprites = []
+        hitSprites = []
+
+        # loop through to get the frames saved
+        for frame_idx in range(len(properties['frames'])):
+            frame = tileMapObj.get_tile_image_by_gid(properties['frames'][frame_idx].gid)
+            if self.has_i_frames and frame_idx >= self.idle_frame_start - 1 and frame_idx < (
+                    (self.idle_frame_start - 1) + self.idle_frame_count):
+                idleSprites.append(frame)
+            elif self.has_h_frames and frame_idx >= self.hit_frame_start - 1 and frame_idx < (
+                    (self.hit_frame_start - 1) + self.hit_frame_count):
+                # load the hit frames
+                hitSprites.append(frame)
+            elif self.has_m_frames and frame_idx >= self.moving_frame_start - 1 and frame_idx < (
+                    (self.moving_frame_start - 1) + self.moving_frame_count):
+                # load the h
+                moveRightSprites.append(frame)
+                moveLeftSprites.append(pygame.transform.flip(frame, True, False))
+
+        self.SPRITES["idle"] = idleSprites
+        self.SPRITES["move_right"] = moveRightSprites
+        self.SPRITES["move_left"] = moveLeftSprites
+
+    def jump(self):
+        self.y_vel = -self.GRAVITY * 5
+        self.animation_count = 0
+        self.jump_count += 1
+        if self.jump_count == 1:
+            self.fall_count = 0
+        if self.jump_count == 2:
+            self.y_vel *= 2
+        if self.jump_count == 3:
+            self.y_vel *= 3
+
+    def move(self, dx, dy):
+        self.rect.x += dx
+        self.rect.y += dy
+
+    def make_hit(self):
+        print("make hit", self.hit)
+        self.hit = True
+        self.hit_count = 0
+        self.apply_hit += 2
+
+    def move_left(self, vel):
+        self.x_vel = -vel
+        if self.direction != "left":
+            self.direction = "left"
+            self.animation_count = 0
+
+    def move_right(self, vel):
+        self.x_vel = vel
+        if self.direction != "right":
+            self.direction = "right"
+            self.animation_count = 0
+
+    def loop(self, fps):
+        # falling based on how long we have been in free-fall
+        self.y_vel += min(1, (self.fall_count / FPS) * self.GRAVITY)
+
+        # move slower if we are hit by 50%
+        # if self.hit:
+        #     self.move(self.x_vel * 0.5, self.y_vel * 0.5)
+        # else:
+        self.move(self.x_vel, self.y_vel)
+        #
+        # if self.times_hit > 2:
+        #     self.times_hit = 0
+        #     self.death_count -= 1
+        #     self.did_die = True
+        #     print("hit 3 times - death!")
+
+        if self.hit:
+            # if self.apply_hit % 4 == 0 and self.hit_count == 0:
+            #     self.apply_hit = 0
+            #     self.times_hit += 1
+            #     # bounces back the player when hit so we don't hit more than one time
+            #     if self.direction == "left":
+            #         self.rect.x += 35
+            #     else:
+            #         self.rect.x -= 35
+            #
+            #     if self.fall_count > 0:
+            #         self.rect.y -= 32
+
+            self.hit_count += 1
+
+        if self.hit_count > FPS * 2:
+            self.hit = False
+            self.hit_count = 0
+
+        # +1 fall count per fps
+        self.fall_count += 1
+        self.update_sprite()
+
+    def landed(self):
+        self.fall_count = 0
+        self.y_vel = 0
+        self.jump_count = 0
+
+    def hit_head(self):
+        self.count = 0
+        self.y_vel *= -1
+
+    def update_sprite(self):
+        sprite_sheet = "idle"
+        needs_direction = False
+
+        if self.hit:
+            sprite_sheet = "hit"
+        # elif self.y_vel < 0:
+        #     if self.jump_count == 1:
+        #         sprite_sheet = "jump"
+        #     elif self.jump_count >= 2:
+        #         sprite_sheet = "double_jump"
+        elif self.y_vel > self.GRAVITY * 2:
+            sprite_sheet = "idle"
+        elif self.x_vel != 0:
+            sprite_sheet = "move"
+            needs_direction = True
+
+        sprite_sheet_name = sprite_sheet
+
+        if needs_direction:
+            sprite_sheet_name += "_" + self.direction
+
+        sprites = self.SPRITES[sprite_sheet_name]
+        sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        self.sprite = sprites[sprite_index]
+        self.animation_count += 1
+        self.update()
+
+    def update(self):
+        self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
+        self.mask = pygame.mask.from_surface(self.sprite)
+
+    def draw(self, win, offset_x, offset_y):
+        win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y - offset_y))
+
+
 class Object(pygame.sprite.Sprite):
     def __init__(self, x, y, screen_x, screen_y, image, width, height, name=None):
         super().__init__()
@@ -220,7 +436,7 @@ class Object(pygame.sprite.Sprite):
 
 class Block(Object):
     def __init__(self, x, y, screen_x, screen_y, image, sizeW, sizeH):
-        super().__init__(x, y, screen_x, screen_y, image, sizeW, sizeH)
+        super().__init__(x, y, screen_x, screen_y, image, sizeW, sizeH, "block")
         # block = get_block(size)
         # self.image.blit(block, (0, 0))
         self.mask = pygame.mask.from_surface(self.image)
@@ -256,65 +472,6 @@ class AnimatedObject(Object):
             self.animation_count = 0
 
 
-# moving object is a block that moves from left to right
-class MovingObject (AnimatedObject):
-    def __init__(self, x, y, screen_x, screen_y, width, height, location, name, image=None):
-        super().__init__(x, y, screen_x, screen_y, width, height, location, name, image)
-        self.sprite_sheet = "idle"
-        
-    # this method will move an object based on the player
-    def loop(self):
-        # falling based on how long we have been in free-fall
-        self.y_vel += min(1, (self.fall_count / FPS) * self.GRAVITY)
-        self.move(self.x_vel, self.y_vel)
-
-        if self.hit:
-            self.hit_count += 1
-        if self.hit_count > FPS * 2:
-            self.hit = False
-            self.hit_count = 0
-
-        # +1 fall count per fps
-        self.fall_count += 1
-        self.update_sprite()
-
-    def move(self, dx, dy):
-        self.rect.x += dx
-        self.rect.y += dy
-
-    def move_left(self, vel):
-        self.x_vel = -vel
-        if self.direction != "left":
-            self.direction = "left"
-            self.animation_count = 0
-
-    def move_right(self, vel):
-        self.x_vel = vel
-        if self.direction != "right":
-            self.direction = "right"
-            self.animation_count = 0
-
-    def update_sprite(self):
-        sprite_sheet = "idle"
-        if self.hit:
-            sprite_sheet = "hit"
-        elif self.y_vel > self.GRAVITY * 2:
-            sprite_sheet = "fall"
-        elif self.x_vel != 0:
-            sprite_sheet = "run"
-
-        sprite_sheet_name = sprite_sheet + "_" + self.direction
-        sprites = self.SPRITES[sprite_sheet_name]
-        sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
-        self.sprite = sprites[sprite_index]
-        self.animation_count += 1
-        self.update()
-    
-    def update(self):
-        self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
-        self.mask = pygame.mask.from_surface(self.sprite)
-
-
 class Controller:
     def __init__(self, joystick):
         self.controller = joystick
@@ -332,7 +489,7 @@ class Controller:
         # returns (x,y)
         if self.hatCount > hat_id:
             x, y = self.controller.get_hat(hat_id)
-            print("hat position: ", x,y)
+            print("hat position: ", x, y)
             if x > 0 and y == 0:
                 return "right"
             elif x < 0 and y == 0:
@@ -433,6 +590,7 @@ class Controller:
     def GetGuid(self):
         return self.controller.get_guid()
 
+
 # change this to use a tilemap
 # def get_background(name):
 #     image = pygame.image.load(join("assets", "Background", name))
@@ -496,6 +654,15 @@ def draw(level, window, map, player, blocks, objects, offset_x, offset_y):
         else:
             obj.draw(window, offset_x, offset_y)
 
+    # draw the npc's
+    for npc in level.npcs:
+        if npc.rect.y - offset_y < window_top or npc.rect.y - offset_y > window_bottom:
+            continue
+        elif npc.rect.x - offset_x < window_left or npc.rect.x - offset_x > window_right:
+            continue
+        else:
+            npc.draw(window, offset_x, offset_y)
+
     player.draw(window, offset_x, offset_y)
 
     # draw the menu
@@ -534,6 +701,22 @@ def collide(player, objects, dx):
     return collided_object
 
 
+def collide_npc(npc, objects, dx):
+    npc.move(dx, 0)
+    npc.update()
+    collided_object = None
+    for obj in objects:
+        if pygame.sprite.collide_mask(npc, obj):
+            if npc.rect.bottom // npc.rect.height == obj.rect.bottom // obj.rect.height:
+                collided_object = obj
+                break
+
+    npc.move(-dx, 0)
+    npc.update()
+
+    return collided_object
+
+
 def handle_move(player, controllers, objects):
     keys = pygame.key.get_pressed()
 
@@ -548,18 +731,19 @@ def handle_move(player, controllers, objects):
     if keys[pygame.K_RIGHT] and not collide_right:
         player.move_right(PLAYER_VEL)
 
-    # handles the controller button for moving
-    if player.controller.IsButtonPressed(14):
-        player.move_right(PLAYER_VEL)
-    if player.controller.IsButtonPressed(13):
-        player.move_left(PLAYER_VEL)
+    if len(controllers) > 0:
+        # handles the controller button for moving
+        if player.controller.IsButtonPressed(14):
+            player.move_right(PLAYER_VEL)
+        if player.controller.IsButtonPressed(13):
+            player.move_left(PLAYER_VEL)
 
-    hat_direction = player.controller.GetHatPosition(0)
-    axis_direction = player.controller.GetAxisPosition(0)
-    if (hat_direction == "left" or axis_direction == "left") and not collide_left:
-        player.move_left(PLAYER_VEL)
-    elif (hat_direction == "right" or axis_direction == "right") and not collide_right:
-        player.move_right(PLAYER_VEL)
+        hat_direction = player.controller.GetHatPosition(0)
+        axis_direction = player.controller.GetAxisPosition(0)
+        if (hat_direction == "left" or axis_direction == "left") and not collide_left:
+            player.move_left(PLAYER_VEL)
+        elif (hat_direction == "right" or axis_direction == "right") and not collide_right:
+            player.move_right(PLAYER_VEL)
 
     vertical_collide = handle_vertical_collision(player, objects, player.y_vel)
     to_check = [collide_left, collide_right, *vertical_collide]
@@ -567,30 +751,81 @@ def handle_move(player, controllers, objects):
     for obj in to_check:
         if obj and obj.name == "Fire":
             player.make_hit()
+        elif obj and obj.name == "npc" and obj.kills:
+            player.make_hit()
+
+
+def handle_move_npc(npc, objects):
+    # keys = pygame.key.get_pressed()
+
+    # remove this to handle
+    npc.x_vel = 0
+    collide_left = collide_npc(npc, objects, -npc.speed * 2)
+    collide_right = collide_npc(npc, objects, npc.speed * 2)
+
+    vertical_collide = handle_vertical_collision(npc, objects, npc.y_vel)
+    # to_check = [collide_left, collide_right, *vertical_collide]
+
+    new_direction = npc.direction
+    if npc.direction == "left":
+        for obj in [collide_left]:
+            if obj is None:
+                # nothing... do nothing
+                continue
+            elif obj.name == "player" and npc.kills:
+                # this is actually the player
+                obj.make_hit()
+                obj.times_hit += 1
+            elif obj.name == "block":
+                # make the npc move the opposite direction
+                new_direction = "right"
+
+
+    elif npc.direction == "right":
+        for obj in [collide_right]:
+            if obj is None:
+                continue
+            if obj and obj.name == "player" and npc.kills:
+                # this is actually the player
+                obj.make_hit()
+                obj.times_hit += 1
+            elif obj and obj.name == "block":
+                # make the npc move the opposite direction
+                new_direction = "left"
+
+    if new_direction == "right":
+        npc.move_right(npc.speed)
+    else:
+        npc.move_left(npc.speed)
+
+    for obj in vertical_collide:
+        if obj and obj.name == "player":
+            # this is actually the player
+            obj.make_hit()
 
 
 def draw_text(text, color, x, y, window, isTitle=False):
     size = 15
-    
+
     if isTitle:
         size = 30
-    
+
     font = pygame.font.SysFont("arialblack", size)
-    
+
     img = font.render(text, True, color)
-    window.blit(img, (x,y))
+    window.blit(img, (x, y))
 
 
 CLASS_DICTIONARY = {
     'AnimatedObject': AnimatedObject,
-    'MovingObject': MovingObject
+    # 'MovingObject': MovingObject
 }
 
 LEVEL_DICTIONARY = {
-    0: ["assets", "world", "Intro.tmx"],
+    3: ["assets", "world", "Intro.tmx"],
     2: ["assets", "world", "Level_0.tmx"],
     1: ["assets", "world", "Level_1.tmx"],
-    3: ["assets", "world2", "Level_2.tmx"],
+    0: ["assets", "world2", "Level_2.tmx"],
     4: ["assets", "world2", "Level_3.tmx"],
     5: ["assets", "world2", "Level_4.tmx"],
     6: ["assets", "world2", "Level_5.tmx"],
@@ -604,10 +839,12 @@ PLAYER_SPRITE_DICTIONARY = {
     3: "VirtualGuy"
 }
 
+
 class Level():
     def __init__(self, id):
         self.level_id = id
         self.objects = []
+        self.npcs = []
         self.blocks = []
         self.background = []
         self.level_start_x = 100
@@ -629,14 +866,25 @@ class Level():
         self.next_level = self.level_id + 1
         if self.next_level > len(LEVEL_DICTIONARY):
             self.next_level = -1
-        
+
         # for the menu
         self.player = None
         self.controller = None
-        self.text_color = (255,255,255)
-    
+        self.text_color = (255, 255, 255)
+
     def level_parse(self):
+        count = 0
+        for tileObj in self.tiled_map.objects:
+            count += 1
+            screen_x, screen_y = worldCoordsToScreenCoords(tileObj.x, tileObj.y, self.block_size_w, self.block_size_h)
+            npc = NonPlayerCharacter(tileObj.x, tileObj.y, screen_x, screen_y, tileObj.width, tileObj.height, count,
+                                     tileObj.properties, self.tiled_map)
+            self.npcs.append(npc)
+
         for layerObj in self.tiled_map.layers:
+            if layerObj.name == "Enemies":
+                continue
+
             layerProperties = layerObj.properties
             # set some properties
             if layerObj.name == "Level_Properties":
@@ -646,11 +894,13 @@ class Level():
 
                 _x = layerProperties['LevelStartX']
                 _y = layerProperties['LevelStartY']
-                self.level_start_x, self.level_start_y = worldCoordsToScreenCoords(int(_x), int(_y), self.block_size_w, self.block_size_h)
+                self.level_start_x, self.level_start_y = worldCoordsToScreenCoords(int(_x), int(_y), self.block_size_w,
+                                                                                   self.block_size_h)
 
                 _x = layerProperties['LevelEndX']
                 _y = layerProperties['LevelEndY']
-                self.level_end_x, self.level_end_y = worldCoordsToScreenCoords(int(_x), int(_y), self.block_size_w, self.block_size_h)
+                self.level_end_x, self.level_end_y = worldCoordsToScreenCoords(int(_x), int(_y), self.block_size_w,
+                                                                               self.block_size_h)
 
                 # this layer should not have any blocks to load.
                 continue
@@ -658,6 +908,7 @@ class Level():
             # background first
             for x, y, image in layerObj.tiles():
                 screen_x, screen_y = worldCoordsToScreenCoords(x, y, self.block_size_w, self.block_size_h)
+
                 if layerObj.name == "Background":
                     self.background.append([screen_x, screen_y, image])
                 elif layerObj.name == "Blocks":
@@ -672,15 +923,18 @@ class Level():
                     if "Animated" in layerObj.name:
                         # x, y, screen_x, screen_y, width, height, location, name, image=None
                         object_instance = CLASS_DICTIONARY[layerProperties['objectType']](x, y, screen_x, screen_y,
-                                                                                        object_width, object_height,
-                                                                                        layerProperties[
-                                                                                            'objectLocation'],
-                                                                                        layerProperties[
-                                                                                            'objectName'])
+                                                                                          object_width, object_height,
+                                                                                          layerProperties[
+                                                                                              'objectLocation'],
+                                                                                          layerProperties[
+                                                                                              'objectName'])
                         self.objects.append(object_instance)
 
     def get_blocks(self):
         return self.blocks
+
+    def get_npc(self):
+        return self.npc
 
     def set_menu(self, player):
         self.player = player
@@ -702,6 +956,7 @@ class Level():
         draw_text('Lives: ' + str(self.player.death_count), self.text_color, 130, 35, window)
         draw_text('Current Level: ' + str(self.level_id), self.text_color, 530, 15, window, True)
 
+
 def load_level(level_id):
     level = Level(level_id)
     level.level_parse()
@@ -710,15 +965,18 @@ def load_level(level_id):
     window = pygame.display.set_mode((WIDTH, HEIGHT), FLAGS, 16)
     return (window, level)
 
+
 def game_over(player, controllers, player_sprite_id=0):
     window, level = load_level(0)
-    player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h, player.id, player_sprite_id)
-    
+    player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h, player.id,
+                    player_sprite_id)
+
     if len(controllers) > 0:
         player.controller = controllers[0]
     level.set_menu(player)
 
     return (window, level, player)
+
 
 def main(window):
     # level stats
@@ -745,7 +1003,7 @@ def main(window):
             jstk.rumble(0.2, 0.5, 100)
             jstk.rumble(0.6, 0.8, 200)
             jstk.stop_rumble()
-    
+
     # give the first player the first controller found
     if len(controllers) > 0:
         player.controller = controllers[0]
@@ -784,11 +1042,11 @@ def main(window):
 
                     level.set_menu(player)
 
-                elif event.key == pygame.K_ESCAPE or event.key ==  pygame.K_q:
+                elif event.key == pygame.K_ESCAPE or event.key == pygame.K_q:
                     run = False
                     break
             # joyStick buttons
-            if event.type == pygame.JOYBUTTONDOWN: #or event.type == pygame.JOYBUTTONUP:
+            if event.type == pygame.JOYBUTTONDOWN:  # or event.type == pygame.JOYBUTTONUP:
                 for ctrlr in controllers:
                     # find out which button was pressed
                     for i in range(ctrlr.buttonCount):
@@ -810,7 +1068,8 @@ def main(window):
                         player_sprite_id = (player_sprite_id + 1) % len(PLAYER_SPRITE_DICTIONARY)
                         old_death_count = player.death_count
                         player_controller = player.controller
-                        player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h,
+                        player = Player(level.level_start_x, level.level_start_y, level.block_size_w,
+                                        level.block_size_h,
                                         current_player, player_sprite_id)
 
                         player.death_count = old_death_count
@@ -861,13 +1120,15 @@ def main(window):
             offset_y = 0
             print("You Fell to Your Death!", "Restarting Level")
         if player.rect.left >= level.level_end_x and player.rect.top >= (level.level_end_y) and player.rect.bottom <= (
-                level.level_end_y * level.block_size_h) and player.rect.right <= (level.level_end_x * level.block_size_w):
+                level.level_end_y * level.block_size_h) and player.rect.right <= (
+                level.level_end_x * level.block_size_w):
 
             if level.next_level > 0 and level.next_level < len(LEVEL_DICTIONARY):
                 print("Loading next level")
                 window, level = load_level(level.next_level)
                 old_death_count = player.death_count
-                player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h, current_player, player_sprite_id)
+                player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h,
+                                current_player, player_sprite_id)
                 player.death_count = old_death_count
 
                 if len(controllers) > 0:
@@ -902,15 +1163,24 @@ def main(window):
             ao.on()
             ao.loop()
 
+        # loop the NPC's
+        for npc in level.npcs:
+            npc.loop(FPS)
+
         solids = [*level.get_blocks(), *level.objects]
         handle_move(player, controllers, solids)
-        window.fill((0,0,0))
-        
+
+        solids = [player, *solids]
+        for npc in level.npcs:
+            handle_move_npc(npc, solids)
+
+        window.fill((0, 0, 0))
+
         offset_y = player.rect.bottom - window.get_rect().centery
         offset_x = player.rect.centerx - window.get_rect().centerx
 
         draw(level, window, level.background, player, level.get_blocks(), level.objects, offset_x, offset_y)
-        
+
         # print(player.rect.bottom, window.get_rect().bottom)
         # oldOffset_y = offset_y
 
@@ -918,11 +1188,10 @@ def main(window):
         # offset_x = player.rect.centerx - window.get_rect().centerx
         # if oldOffset_y != offset_y:
         #    print('player bottom: ', player.rect.bottom, ' window bottom: ', window.get_rect().bottom, ' Old Offset_y: ', oldOffset_y, ' new offset_y ', offset_y)
-        
+
         # if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
         #         (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
         #     offset_x += player.x_vel
-
 
     pygame.quit()
     quit()
