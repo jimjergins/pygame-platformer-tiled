@@ -3,12 +3,16 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "Level_3.tmx",
+    "activeFile": "Enemies1.tsx",
     "expandedProjectPaths": [
         "."
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
+        "Enemies1.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
         "Enemies_wbg.tsx": {
             "scaleInDock": 1,
             "scaleInEditor": 1
@@ -38,11 +42,11 @@
             }
         },
         "Level_2.tmx": {
-            "scale": 0.75,
-            "selectedLayer": 0,
+            "scale": 1,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 1456,
-                "y": 488.66666666666663
+                "x": 3043,
+                "y": 783.5
             }
         },
         "Level_3.tmx": {
@@ -93,19 +97,17 @@
     "map.tileWidth": 16,
     "map.width": 182,
     "openFiles": [
-        "Level_3.tmx",
         "Level_2.tmx",
-        "Level_4.tmx",
-        "Level_5.tmx",
-        "Level_6.tmx"
+        "Enemies1.tsx"
     ],
     "project": "8x8_level.tiled-project",
     "recentFiles": [
+        "Level_2.tmx",
+        "Enemies1.tsx",
         "Level_6.tmx",
         "Level_5.tmx",
         "Level_4.tmx",
         "Level_3.tmx",
-        "Level_2.tmx",
         "Level_1.tmx",
         "Level2.tmx",
         "Environment_wbg.tsx",

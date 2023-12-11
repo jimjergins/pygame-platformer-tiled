@@ -818,10 +818,10 @@ CLASS_DICTIONARY = {
 }
 
 LEVEL_DICTIONARY = {
-    3: ["assets", "world", "Intro.tmx"],
-    2: ["assets", "world", "Level_0.tmx"],
-    1: ["assets", "world", "Level_1.tmx"],
-    0: ["assets", "world2", "Level_2.tmx"],
+    0: ["assets", "world", "Intro.tmx"],
+    1: ["assets", "world", "Level_0.tmx"],
+    2: ["assets", "world", "Level_1.tmx"],
+    3: ["assets", "world2", "Level_2.tmx"],
     4: ["assets", "world2", "Level_3.tmx"],
     5: ["assets", "world2", "Level_4.tmx"],
     6: ["assets", "world2", "Level_5.tmx"],
