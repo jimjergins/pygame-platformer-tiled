@@ -203,13 +203,15 @@ class Player(pygame.sprite.Sprite):
 class NonPlayerCharacter(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
     GRAVITY = 1
-    SPRITES = {}
     ANIMATION_DELAY = 3
 
-    def __init__(self, x, y, screen_x, screen_y, width, height, id, properties, tileMapObj):
+    def __init__(self, x, y, screen_x, screen_y, width, height, id, properties, tileMapObj, title):
         super().__init__()
         self.name = "npc"
+        self.title = title
+        self.sprites = {}
         self.kills = True
+        self.fly = properties['gravityOff']
         self.frames = properties['frames']
         self.frame_types = properties['availableFrames'].split(',')
         self.has_i_frames = False
@@ -294,9 +296,9 @@ class NonPlayerCharacter(pygame.sprite.Sprite):
                 moveRightSprites.append(frame)
                 moveLeftSprites.append(pygame.transform.flip(frame, True, False))
 
-        self.SPRITES["idle"] = idleSprites
-        self.SPRITES["move_right"] = moveRightSprites
-        self.SPRITES["move_left"] = moveLeftSprites
+        self.sprites["idle"] = idleSprites
+        self.sprites["move_right"] = moveRightSprites
+        self.sprites["move_left"] = moveLeftSprites
 
     def jump(self):
         self.y_vel = -self.GRAVITY * 5
@@ -333,7 +335,10 @@ class NonPlayerCharacter(pygame.sprite.Sprite):
 
     def loop(self, fps):
         # falling based on how long we have been in free-fall
-        self.y_vel += min(1, (self.fall_count / FPS) * self.GRAVITY)
+        if self.fly:
+            self.y_vel = 0
+        else:
+            self.y_vel += min(1, (self.fall_count / FPS) * self.GRAVITY)
 
         # move slower if we are hit by 50%
         # if self.hit:
@@ -382,6 +387,9 @@ class NonPlayerCharacter(pygame.sprite.Sprite):
     def update_sprite(self):
         sprite_sheet = "idle"
         needs_direction = False
+        if self.fly:
+            sprite_sheet = "move"
+            needs_direction = True
 
         if self.hit:
             sprite_sheet = "hit"
@@ -401,7 +409,7 @@ class NonPlayerCharacter(pygame.sprite.Sprite):
         if needs_direction:
             sprite_sheet_name += "_" + self.direction
 
-        sprites = self.SPRITES[sprite_sheet_name]
+        sprites = self.sprites[sprite_sheet_name]
         sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
         self.sprite = sprites[sprite_index]
         self.animation_count += 1
@@ -608,7 +616,7 @@ def worldCoordsToScreenCoords(x, y, block_size_w, block_size_h):
     return x * block_size_w, y * block_size_h
 
 
-def draw(level, window, map, player, blocks, objects, offset_x, offset_y):
+def draw(level, window, map, player, blocks, npcs, objects, offset_x, offset_y):
     w_rect = window.get_rect()
     window_top = w_rect.top - level.block_size_h
     window_bottom = w_rect.bottom + level.block_size_h
@@ -629,10 +637,6 @@ def draw(level, window, map, player, blocks, objects, offset_x, offset_y):
             continue
         elif x - offset_x < window_left or x - offset_x > window_right:
             continue
-        # elif x - offset_x < 0:
-        #     window.blit(image, (x, y))
-        # else:
-        #     window.blit(image, (x - offset_x, y - offset_y))
         else:
             window.blit(image, (x - offset_x, y - offset_y))
 
@@ -655,13 +659,16 @@ def draw(level, window, map, player, blocks, objects, offset_x, offset_y):
             obj.draw(window, offset_x, offset_y)
 
     # draw the npc's
-    for npc in level.npcs:
+    for npc in npcs:
         if npc.rect.y - offset_y < window_top or npc.rect.y - offset_y > window_bottom:
+            # print(npc.title, "is off screen y")
             continue
         elif npc.rect.x - offset_x < window_left or npc.rect.x - offset_x > window_right:
+            # print(npc.title, "is off screen x")
             continue
         else:
             npc.draw(window, offset_x, offset_y)
+            # print(npc.title, "is on screen")
 
     player.draw(window, offset_x, offset_y)
 
@@ -756,8 +763,6 @@ def handle_move(player, controllers, objects):
 
 
 def handle_move_npc(npc, objects):
-    # keys = pygame.key.get_pressed()
-
     # remove this to handle
     npc.x_vel = 0
     collide_left = collide_npc(npc, objects, -npc.speed * 2)
@@ -767,18 +772,14 @@ def handle_move_npc(npc, objects):
     # to_check = [collide_left, collide_right, *vertical_collide]
 
     new_direction = npc.direction
-    if npc.direction == "left":
-        for obj in [collide_left]:
-            if obj is None:
-                # nothing... do nothing
-                continue
-            elif obj.name == "player" and npc.kills:
-                # this is actually the player
-                obj.make_hit()
-                obj.times_hit += 1
-            elif obj.name == "block":
-                # make the npc move the opposite direction
-                new_direction = "right"
+    if npc.direction == "left" and collide_left is not None:
+        if collide_left.name == "player" and npc.kills:
+            # this is actually the player
+            collide_left.make_hit()
+            collide_left.times_hit += 1
+        elif collide_left.name == "block":
+            # make the npc move the opposite direction
+            new_direction = "right"
 
 
     elif npc.direction == "right":
@@ -797,11 +798,6 @@ def handle_move_npc(npc, objects):
         npc.move_right(npc.speed)
     else:
         npc.move_left(npc.speed)
-
-    for obj in vertical_collide:
-        if obj and obj.name == "player":
-            # this is actually the player
-            obj.make_hit()
 
 
 def draw_text(text, color, x, y, window, isTitle=False):
@@ -877,9 +873,9 @@ class Level():
         for tileObj in self.tiled_map.objects:
             count += 1
             screen_x, screen_y = worldCoordsToScreenCoords(tileObj.x, tileObj.y, self.block_size_w, self.block_size_h)
-            npc = NonPlayerCharacter(tileObj.x, tileObj.y, screen_x, screen_y, tileObj.width, tileObj.height, count,
-                                     tileObj.properties, self.tiled_map)
-            self.npcs.append(npc)
+            _npc = NonPlayerCharacter(tileObj.x, tileObj.y, screen_x, screen_y, tileObj.width, tileObj.height, count,
+                                      tileObj.properties, self.tiled_map, tileObj.name)
+            self.npcs.append(_npc)
 
         for layerObj in self.tiled_map.layers:
             if layerObj.name == "Enemies":
@@ -955,6 +951,34 @@ class Level():
         draw_text('Times Hit: ' + str(self.player.times_hit), self.text_color, 10, 35, window)
         draw_text('Lives: ' + str(self.player.death_count), self.text_color, 130, 35, window)
         draw_text('Current Level: ' + str(self.level_id), self.text_color, 530, 15, window, True)
+
+    def obj_on_screen(self, npc, offset_x, offset_y, screen):
+        w_rect = screen.get_rect()
+        window_top = w_rect.top - self.block_size_h
+        window_bottom = w_rect.bottom + self.block_size_h
+        window_left = w_rect.left - self.block_size_w
+        window_right = w_rect.right + self.block_size_w
+
+        if npc.rect.x - offset_x < window_left or npc.rect.x - offset_x > window_right:
+            return False
+        elif npc.rect.y - offset_y > window_bottom or npc.rect.y - offset_y < window_top:
+            return False
+
+        return True
+
+    def tile_on_screen(self, surface, offset_x, offset_y, screen):
+        w_rect = screen.get_rect()
+        window_top = w_rect.top - self.block_size_h
+        window_bottom = w_rect.bottom + self.block_size_h
+        window_left = w_rect.left - self.block_size_w
+        window_right = w_rect.right + self.block_size_w
+
+        if surface[0] - offset_x < window_left or surface[0] - offset_x > window_right:
+            return False
+        elif surface[1] - offset_y > window_bottom or surface[1] - offset_y < window_top:
+            return False
+
+        return True
 
 
 def load_level(level_id):
@@ -1053,7 +1077,7 @@ def main(window):
                         buttonState = ctrlr.controller.get_button(i)
                         if buttonState:
                             ctrlr.SetButtonPressed(i)
-                            print(buttonState, " button pressed: ", i)
+                            # print(buttonState, " button pressed: ", i)
 
                     did_jump = ctrlr.DidJumpButtonPress()
                     ctrlr.DidAttackButtonPress()
@@ -1091,14 +1115,14 @@ def main(window):
                         player.rect.y = level.level_start_y
 
             if event.type == pygame.JOYBUTTONUP:
-                print("buttons released")
+                # print("buttons released")
                 for ctrlr in controllers:
                     # find out which button was pressed
                     for i in ctrlr.buttonsPressed:
                         buttonState = ctrlr.controller.get_button(i)
                         if not buttonState:
                             ctrlr.SetButtonUnpressed(i)
-                            print(buttonState, " button released: ", i)
+                            # print(buttonState, " button released: ", i)
                         # if not buttonState:
                         #     print("button released: ", i
         # end game
@@ -1118,13 +1142,13 @@ def main(window):
             player.rect.y = level.level_start_y
             offset_x = 0
             offset_y = 0
-            print("You Fell to Your Death!", "Restarting Level")
+            # print("You Fell to Your Death!", "Restarting Level")
         if player.rect.left >= level.level_end_x and player.rect.top >= (level.level_end_y) and player.rect.bottom <= (
                 level.level_end_y * level.block_size_h) and player.rect.right <= (
                 level.level_end_x * level.block_size_w):
 
             if level.next_level > 0 and level.next_level < len(LEVEL_DICTIONARY):
-                print("Loading next level")
+                # print("Loading next level")
                 window, level = load_level(level.next_level)
                 old_death_count = player.death_count
                 player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h,
@@ -1139,8 +1163,8 @@ def main(window):
                 offset_y = 0
                 continue
             else:
-                print("Game over, you win!")
-                print("Loading next level")
+                # print("Game over, you win!")
+                # print("Loading next level")
                 # window, level = load_level(0)
                 # player = Player(level.level_start_x, level.level_start_y, level.block_size_w, level.block_size_h, current_player)
 
@@ -1159,27 +1183,56 @@ def main(window):
 
         player.loop(FPS)
 
-        for ao in level.objects:
-            ao.on()
-            ao.loop()
+        # for ao in level.objects:
+        #     ao.on()
+        #     ao.loop()
 
         # loop the NPC's
-        for npc in level.npcs:
-            npc.loop(FPS)
+        # for npc in level.npcs:
+        #     npc.loop(FPS)
+        background_in_view = []
+        blocks_in_view = []
+        objects_in_view = []
+        npcs_in_view = []
+        player_solids = []
 
-        solids = [*level.get_blocks(), *level.objects]
-        handle_move(player, controllers, solids)
+        for bg_tiles in level.background:
+            if level.tile_on_screen(bg_tiles, offset_x, offset_y, window):
+                background_in_view.append(bg_tiles)
 
-        solids = [player, *solids]
+        for blok in level.blocks:
+            if level.obj_on_screen(blok, offset_x, offset_y, window):
+                blocks_in_view.append(blok)
+                player_solids.append(blok)
+
+        for obj in level.objects:
+            if level.obj_on_screen(obj, offset_x, offset_y, window):
+                obj.on()
+                obj.loop()
+                objects_in_view.append(obj)
+                player_solids.append(obj)
+
         for npc in level.npcs:
-            handle_move_npc(npc, solids)
+            if level.obj_on_screen(npc, offset_x, offset_y, window):
+                npc.loop(FPS)
+                npcs_in_view.append(npc)
+                player_solids.append(npc)
+
+        handle_move(player, controllers, player_solids)
+
+        npc_solids = [player, *blocks_in_view]
+        for i in range(len(objects_in_view)):
+            npc_solids.append(objects_in_view[i])
+
+        for npc in npcs_in_view:
+            handle_move_npc(npc, npc_solids)
 
         window.fill((0, 0, 0))
 
         offset_y = player.rect.bottom - window.get_rect().centery
         offset_x = player.rect.centerx - window.get_rect().centerx
 
-        draw(level, window, level.background, player, level.get_blocks(), level.objects, offset_x, offset_y)
+        draw(level, window, background_in_view, player, blocks_in_view, npcs_in_view, objects_in_view, offset_x, offset_y)
 
         # print(player.rect.bottom, window.get_rect().bottom)
         # oldOffset_y = offset_y
